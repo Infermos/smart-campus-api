@@ -21,7 +21,7 @@ The API adheres to the principles of REST such as resource-based design, correct
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/Infermos/smart-campus-api.git
+   git clone https://github.com/Infermos/smart-campus-api
    ```
 
 2. Open in Net Beans
