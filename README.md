@@ -89,14 +89,14 @@ curl http://localhost:8080/smart-campus-api/api/v1/logs
 
 By default, JAX-RS creates a **new instance** of a resource class for **every request** (per-request lifecycle). This means that each HTTP request triggers the instantiation of a fresh resource object, which is then used to handle that specific request and discarded afterward.
 
-However, our in-memory data structures (the HashMaps and ArrayLists in `DataStore.java`) are declared as **static** fields, which means they exist at the class level and are shared across all instances. This design choice has important implications:
+However, in-memory data structures (the HashMaps and ArrayLists in `DataStore.java`) are declared as **static** fields, which means they exist at the class level and are shared across all instances. This design choice has important implications:
 
 **Impact on Data Management:**
 - **Persistence Across Requests:** Because DataStore fields are static, data persists between requests even though resource instances are recreated
 - **Thread Safety Concerns:** Multiple concurrent requests could access the same HashMap simultaneously, creating potential race conditions
-- **Synchronization Requirements:** For production use, we would need to use `ConcurrentHashMap` instead of `HashMap`, or synchronize access to these data structures
+- **Synchronization Requirements:** For production use, I would need to use `ConcurrentHashMap` instead of `HashMap`, or synchronize access to these data structures
 
-In our current implementation, we use standard HashMap which is acceptable for demonstration purposes but would require synchronization mechanisms (like `Collections.synchronizedMap()` or `ConcurrentHashMap`) in a production environment with high concurrency.
+In the current implementation, I use standard HashMap which is acceptable for demonstration purposes but would require synchronization mechanisms (like `Collections.synchronizedMap()` or `ConcurrentHashMap`) in a production environment with high concurrency.
 
 ---
 
@@ -111,7 +111,7 @@ HATEOAS (Hypermedia as the Engine of Application State) is a constraint of REST 
 - **Self-Documentation:** The API becomes partially self-documenting as responses indicate available actions and related resources
 - **Reduced Dependency on Documentation:** Clients don't need to reference external documentation to understand what operations are possible from a given state
 
-In our implementation, the Discovery endpoint (`GET /api/v1/`) provides a map of primary resource collections, demonstrating basic hypermedia principles by telling clients where to find rooms and sensors endpoints rather than requiring them to guess or read documentation.
+In the implementation, the Discovery endpoint (`GET /api/v1/`) provides a map of primary resource collections, demonstrating basic hypermedia principles by telling clients where to find rooms and sensors endpoints rather than requiring them to guess or read documentation.
 
 ---
 
@@ -127,8 +127,8 @@ In our implementation, the Discovery endpoint (`GET /api/v1/`) provides a map of
 - **Pros:** Minimal bandwidth usage, faster response times, clients fetch only what they need
 - **Cons:** Requires additional requests to get full details, increases total number of HTTP requests (N+1 problem)
 
-**Our Implementation:**
-We return full room objects in `GET /api/v1/rooms` because:
+**Implementation:**
+I return full room objects in `GET /api/v1/rooms` because:
 - Room objects are relatively small (ID, name, capacity, sensor ID list)
 - Clients typically need this basic information for display purposes
 - The performance cost is minimal compared to the convenience
@@ -139,7 +139,7 @@ For larger datasets or objects with heavy nested data, a hybrid approach might b
 
 #### 4. Is the DELETE operation idempotent in your implementation? Provide a detailed justification by describing what happens if a client mistakenly sends the exact same DELETE request for a room multiple times.
 
-Yes, our DELETE implementation is **idempotent**.
+Yes, DELETE implementation is **idempotent**.
 
 **Here's what happens with repeated DELETE requests:**
 
@@ -162,7 +162,7 @@ The operation is idempotent because making the same request multiple times produ
 
 ### Part 3: Sensor Operations & Linking
 
-#### 5. We explicitly use the @Consumes(MediaType.APPLICATION_JSON) annotation on the POST method. Explain the technical consequences if a client attempts to send data in a different format, such as text/plain or application/xml. How does JAX-RS handle this mismatch?
+#### 5. I explicitly use the @Consumes(MediaType.APPLICATION_JSON) annotation on the POST method. Explain the technical consequences if a client attempts to send data in a different format, such as text/plain or application/xml. How does JAX-RS handle this mismatch?
 
 When a client sends data with a `Content-Type` header that doesn't match the `@Consumes` annotation, JAX-RS performs content negotiation and rejects the request.
 
@@ -178,7 +178,7 @@ When a client sends data with a `Content-Type` header that doesn't match the `@C
 
 - **Early Validation:** Request is rejected at the framework level before reaching application code
 - **Clear Error Messaging:** Standard HTTP 415 status indicates exactly what went wrong
-- **Type Safety:** Ensures only properly formatted JSON reaches our Java objects for deserialization
+- **Type Safety:** Ensures only properly formatted JSON reaches Java objects for deserialization
 - **Security:** Prevents potential parsing vulnerabilities from unexpected data formats
 
 This is part of JAX-RS's declarative approach to API design, where annotations specify contracts that the framework enforces automatically.
@@ -215,7 +215,7 @@ Query parameters are superior for filtering because they maintain clear resource
 
 The Sub-Resource Locator pattern provides significant architectural advantages for managing complex, nested resource hierarchies.
 
-**Implementation in Our API:**
+**Implementation in the API:**
 ```java
 @Path("/{id}/readings")
 public SensorReadingResource getReadings() {
@@ -227,18 +227,18 @@ public SensorReadingResource getReadings() {
 
 - **Separation of Concerns:** Each resource class handles its own domain logic. `SensorResource` manages sensors, while `SensorReadingResource` manages readings. This keeps classes focused and maintainable.
 
-- **Reduced Complexity:** Instead of having one massive `SensorResource` class with methods for sensors AND all reading operations, we split them into separate classes. This prevents controller classes from becoming thousands of lines long.
+- **Reduced Complexity:** Instead of having one massive `SensorResource` class with methods for sensors AND all reading operations, I split them into separate classes. This prevents controller classes from becoming thousands of lines long.
 
 - **Improved Maintainability:** When bugs occur in reading operations, developers know to look in `SensorReadingResource` rather than searching through a large controller file.
 
-- **Reusability:** The `SensorReadingResource` class could potentially be reused for other similar patterns (e.g., if we had device readings or equipment readings).
+- **Reusability:** The `SensorReadingResource` class could potentially be reused for other similar patterns (e.g., if I had device readings or equipment readings).
 
 - **Clear Resource Hierarchy:** The code structure mirrors the URL structure (`/sensors/{id}/readings`), making the API intuitive to understand and navigate.
 
 - **Contextual Scope:** The sub-resource has implicit context about its parent (the sensor ID from the path), allowing it to operate within that scope automatically.
 
 **Alternative (Without Sub-Resources):**
-We would need to define paths like:
+I would need to define paths like:
 ```java
 @Path("/sensors/{sensorId}/readings")
 @Path("/sensors/{sensorId}/readings/{readingId}")
@@ -256,7 +256,7 @@ The sub-resource locator pattern scales elegantly as APIs grow, keeping code org
 **HTTP 404 (Not Found):** Indicates the requested **URL/resource** doesn't exist
 **HTTP 422 (Unprocessable Entity):** Indicates the request was understood but cannot be processed due to **semantic errors in the payload**
 
-**In Our Scenario:**
+**In the Scenario:**
 ```json
 POST /api/v1/sensors
 {
@@ -275,7 +275,7 @@ POST /api/v1/sensors
 
 - **Client Guidance:** 422 tells the client "your request structure is fine, but the data inside has problems," helping them understand they need to fix the content, not the URL
 
-**If We Used 404:**
+**If I Used 404:**
 - Misleading: Suggests the `/sensors` endpoint doesn't exist
 - Confusing: Client might think they have the wrong URL
 - Less Specific: Doesn't distinguish between "endpoint not found" and "referenced resource not found"
@@ -323,7 +323,7 @@ This tells an attacker:
 - There's insufficient null checking at line 45
 - Potential injection point for exploitation
 
-**Our Protection:**
+**Protection:**
 The `GlobalExceptionMapper` returns generic messages: `"An unexpected error occurred. Please contact support."` while logging the full stack trace server-side for developers. This provides security for production while maintaining debuggability.
 
 ---
